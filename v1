@@ -1,9 +1,19 @@
 local friendsenaabled = false
-
+local players = game:GetService("Players")
+local userinputservice = game:GetService("UserInputService")
+local tweenservice = game:GetService("TweenService")
+local player = players.localplayer
 local screengui = Instance.new("ScreenGui")
 screengui.Parent = game.Players.LocalPlayer:WaitForChild("PlayerGui")
 
-
+local container = Instance.new("Frame")
+container.Name = "Container"
+container.Parent = screengui
+container.Size = UDim2.fromOffset(220, 160)
+container.Position = UDim2.fromOffset(250, 250)
+container.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+container.BackgroundTransparency = 0.1
+container.BorderSizePixel = 0
 
 local togglebutton = Instance.new("TextButton")
 togglebutton.Name = "FriendsToggle"
@@ -47,3 +57,61 @@ local function updateinput(input)
 		container.Position = UDim2.new(startpos.X.Scale, startpos.X.Offset + delta.X, startpos.Y.Scale, startpos.Y.Offset + delta.Y)
 	end
 end
+
+container.InputBegan:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+		drag = true
+		dragstart = input.Position
+		startpos = container.Position
+		
+		container.backgroundcolor3 = Color3.fromRGB(30, 30, 30)
+	end
+end)
+
+userinputservice.InputChanged:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+		drag = false
+		container.backgroundcolor3 = Color3.fromRGB(20, 20, 20)
+	end
+end)
+
+userinputservice.InputChanged:Connect(function(input)
+	if drag and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+		updateinput(input)
+	end
+end)
+
+togglebutton.mousebutton1click:Connect(function()
+	local orginalsize = togglebutton.Size
+	local tweeninfo = TweenInfo.new(0.1, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+	
+	local scaledown = tweenservice:Create(togglebutton,TweenInfo, {Size = UDim2.fromOffset(190, 50)})
+	scaledown:Play()
+	
+	task.wait(0.1)
+
+togglefriendsstate()
+
+local scaleup = tweenservice:Create(togglebutton, TweenInfo, {Size = orginalsize})
+scaleup:Play()
+end)
+
+togglebutton.touchtap:Connect(function()
+	local orginalsize = togglebutton.Size
+	local tweeninfo = TweenInfo.new(0.1, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+	local scaledown = tweenservice:Create(togglebutton, TweenInfo, {Size = UDim2.fromOffset(190, 50)})
+	scaledown:Play()
+	
+	task.wait(0.1)
+	
+	togglefriendsstate()
+	
+	local scaleup = tweenservice:Create(togglebutton, TweenInfo, {Size = orginalsize})
+	scaleup:Play()
+end)
+
+local pulsetween = tweenservice:Create(
+	TweenInfo.new(2, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true),
+	{backgroundtransparency = 0.2}
+)
+pulsetween:Play()
