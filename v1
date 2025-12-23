@@ -1,0 +1,49 @@
+local friendsenaabled = false
+
+local screengui = Instance.new("ScreenGui")
+screengui.Parent = game.Players.LocalPlayer:WaitForChild("PlayerGui")
+
+
+
+local togglebutton = Instance.new("TextButton")
+togglebutton.Name = "FriendsToggle"
+togglebutton.Parent = screengui
+togglebutton.BorderSizePixel = 0
+togglebutton.Size = UDim2.new(0, 132, 0, 45)
+togglebutton.Position = UDim2.new(0.806, 0,0.044, 0)
+togglebutton.Text = "Enable Friends"
+togglebutton.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
+togglebutton.TextColor3 = Color3.fromRGB(255, 255, 255)
+togglebutton.Font = Enum.Font.GothamBlack
+togglebutton.TextSize = 18
+
+
+local function togglefriendsstate()
+	friendsenaabled = not friendsenaabled
+	
+	if friendsenaabled then
+		togglebutton.text = "Disable Friends"
+		togglebutton.backgroundcolor3 = Color3.fromRGB(255, 0, 0)
+		
+		
+		game:GetService("ReplicatedStorage"):waitForChild("Packages"):Waitforchild("Net"):waitforchild("RE/Plotservice/togglefriends"):fireserver()	
+	else
+		togglebutton.text = "Enable Friends"
+		togglebutton.backgroundcolor3 = Color3.fromRGB(13, 255, 0)
+		
+		
+		
+		game:GetService("ReplicatedStorage"):waitForChild("Packages"):Waitforchild("Net"):waitforchild("RE/Plotservice/togglefriends"):fireserver()	
+	end
+end
+
+local drag = false
+local dragstart = nil
+local startpos = nil
+
+local function updateinput(input)
+	if drag then
+		local delta = input.Position - dragstart
+		container.Position = UDim2.new(startpos.X.Scale, startpos.X.Offset + delta.X, startpos.Y.Scale, startpos.Y.Offset + delta.Y)
+	end
+end
