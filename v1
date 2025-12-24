@@ -1,12 +1,12 @@
-local friendsenaabled = false
 local players = game:GetService("Players")
 local userinputservice = game:GetService("UserInputService")
 local tweenservice = game:GetService("TweenService")
 local player = players.localplayer
-local rep = game:GetService("ReplicatedStorage"):waitForChild("Packages"):Waitforchild("Net"):waitforchild("RE/Plotservice/togglefriends"):fireserver()
+local playergui = player:waitforchild("PlayerGui")
+
 
 local screengui = Instance.new("ScreenGui")
-screengui.Parent = game.Players.LocalPlayer:WaitForChild("PlayerGui")
+screengui.Parent = playergui
 
 local button = Instance.new("TextButton")
 button.Name = "Toggle"
@@ -19,41 +19,92 @@ button.TextColor3 = Color3.fromRGB(255, 255, 255)
 button.Font = Enum.Font.FredokaOne
 button.TextSize = 24
 
+local corner = Instance.new("UICorner")
+corner.Parent = button
+corner.CornerRadius = UDim.new(0, 12)
 
-script.Parent.Parent.Parent.button.MouseButton1Click:Connect(function()
-	game:GetService("ReplicatedStorage"):waitForChild("Packages"):Waitforchild("Net"):waitforchild("RE/Plotservice/togglefriends"):fireserver()
-end)
+local statuslabel = Instance.new("TextLabel")
+statuslabel.Name = "Status"
+statuslabel.Parent = button
+statuslabel.Size = UDim2.new(0.7, 0,0.7, 0)
+statuslabel.Position = UDim2.new(0.15, 0,0.15, 0)
+statuslabel.Text = "Status: DISALLOWED"
+statuslabel.TextScaled = true
+statuslabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+statuslabel.Font = Enum.Font.FredokaOne
 
-local drag = false
-local dragstart = nil
-local startpos = nil
+local allowed = false
 
-local function updateinput(input)
-	if drag then
-		local delta = input.Position - dragstart
-		button.Position = UDim2.new(startpos.X.Scale, startpos.X.Offset + delta.X, startpos.Y.Scale, startpos.Y.Offset + delta.Y)
+local function upddatestatus()
+	if allowed then
+		statuslabel.Text = "Status: ALLOWED"
+		statuslabel.textcolor3 = Color3.fromRGB(80, 255, 120)
+		button.BackgroundColor3 = Color3.fromRGB(80, 200, 120)
+	else
+		statuslabel.Text = "Status: DISALLOWED"
+		statuslabel.TextColor3 = Color3.fromRGB(255, 80, 80)
+		button.BackgroundColor3 = Color3.fromRGB(200, 80, 80)
 	end
 end
 
+button.Activated:Connect(function()
+	local remote = game:GetService("ReplicatedStorage")
+	:WaitForChild("packages")
+	:WaitForChild("Net")
+	:WaitForChild("RE/Plotservice/toggleallow")
+	remote:FireServer()
+	allowed = not allowed
+	upddatestatus()
+end)
+
+
+local drag = false
+local dragstart
+local startpos
+
+local function updateinput(input)
+	local delta = input.Position - dragstart
+	button.Position = UDim2.new(
+		startpos.X.Scale,
+		startpos.X.Offset + delta.X,
+		startpos.Y.Scale,
+		startpos.Y.Offset + delta.Y
+	)
+	statuslabel.Position = UDim2(
+		startpos.X.Scale,
+		startpos.X.Offset + delta.X - 10,
+		startpos.Y.Scale,
+		startpos.y.offset + delta.Y - 50
+	)
+end
+
 button.InputBegan:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-		drag = true
-		dragstart = input.Position
-		startpos = button.Position
-		
-		button.backgroundcolor3 = Color3.fromRGB(30, 30, 30)
+	if input.UserInputType == Enum.UserInputType.Touch 
+	or input.UserInputType == Enum.UserInputType.MouseButton1 then
+	drag = true
+	dragstart = input.Position
+	startpos = button.Position
 	end
 end)
 
-userinputservice.InputChanged:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+button.InputEnded:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.Touch 
+	or input.UserInputType == Enum.UserInputType.MouseButton1 then
+	drag = false
+	end
+end)
+
+userinputservice.InputEnded:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
 		drag = false
-		button.backgroundcolor3 = Color3.fromRGB(20, 20, 20)
 	end
 end)
 
 userinputservice.InputChanged:Connect(function(input)
-	if drag and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
-		updateinput(input)
+	if drag and (
+		input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseMovement) then
+		update(input)
 	end
 end)
+
+upddatestatus()
