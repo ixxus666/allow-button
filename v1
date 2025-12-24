@@ -1,110 +1,156 @@
-local players = game:GetService("Players")
-local userinputservice = game:GetService("UserInputService")
-local tweenservice = game:GetService("TweenService")
-local player = players.localplayer
-local playergui = player:waitforchild("PlayerGui")
+-- SERVICES
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
+local player = Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
 
-local screengui = Instance.new("ScreenGui")
-screengui.Parent = playergui
+-- CLEAN UP
+if playerGui:FindFirstChild("AllowFixGui") then
+    playerGui.AllowFixGui:Destroy()
+end
+
+-- GUI
+local gui = Instance.new("ScreenGui")
+gui.Name = "AllowFixGui"
+gui.ResetOnSpawn = false
+gui.Parent = playerGui
 
 local button = Instance.new("TextButton")
-button.Name = "Toggle"
-button.Parent = screengui
-button.Size = UDim2.new(0, 132,0, 45)
-button.Position = UDim2.new(0.806, 0,0.044, 0)
-button.Text = "Allow/Disallow"
-button.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
-button.TextColor3 = Color3.fromRGB(255, 255, 255)
-button.Font = Enum.Font.FredokaOne
-button.TextSize = 24
+button.Parent = gui
+button.Size = UDim2.new(0, 180, 0, 60)
+button.Position = UDim2.new(0.5, -90, 0.8, 0)
+button.Text = "TOGGLE"
+button.TextScaled = true
+button.Font = Enum.Font.GothamBold
+button.TextColor3 = Color3.new(1,1,1)
+button.BackgroundColor3 = Color3.fromRGB(200, 80, 80)
+button.BorderSizePixel = 0
 
-local corner = Instance.new("UICorner")
-corner.Parent = button
-corner.CornerRadius = UDim.new(0, 12)
+Instance.new("UICorner", button).CornerRadius = UDim.new(0,12)
 
-local statuslabel = Instance.new("TextLabel")
-statuslabel.Name = "Status"
-statuslabel.Parent = button
-statuslabel.Size = UDim2.new(0.7, 0,0.7, 0)
-statuslabel.Position = UDim2.new(0.15, 0,0.15, 0)
-statuslabel.Text = "Status: DISALLOWED"
-statuslabel.TextScaled = true
-statuslabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-statuslabel.Font = Enum.Font.FredokaOne
+local status = Instance.new("TextLabel")
+status.Parent = gui
+status.Size = UDim2.new(0, 260, 0, 40)
+status.Position = UDim2.new(0.5, -130, 0.73, 0)
+status.BackgroundTransparency = 1
+status.TextScaled = true
+status.Font = Enum.Font.GothamBold
+status.Text = "Status: SEARCHING EVENT..."
+status.TextColor3 = Color3.fromRGB(255, 200, 0)
 
+-- FIND REMOTE
+local remote
+
+for _, v in ipairs(ReplicatedStorage:GetDescendants()) do
+    if v:IsA("RemoteEvent") then
+        local name = v.Name:lower()
+        if name:find("toggle") or name:find("friend") or name:find("allow") then
+            remote = v
+            break
+        end
+    end
+end
+
+if remote then
+    status.Text = "Status: READY (" .. remote.Name .. ")"
+    status.TextColor3 = Color3.fromRGB(120, 200, 255)
+else
+    status.Text = "Status: EVENT NOT FOUND"
+    status.TextColor3 = Color3.fromRGB(255, 80, 80)
+end
+
+-- STATE
 local allowed = false
 
-local function upddatestatus()
-	if allowed then
-		statuslabel.Text = "Status: ALLOWED"
-		statuslabel.textcolor3 = Color3.fromRGB(80, 255, 120)
-		button.BackgroundColor3 = Color3.fromRGB(80, 200, 120)
-	else
-		statuslabel.Text = "Status: DISALLOWED"
-		statuslabel.TextColor3 = Color3.fromRGB(255, 80, 80)
-		button.BackgroundColor3 = Color3.fromRGB(200, 80, 80)
-	end
-end
-
+-- CLICK
 button.Activated:Connect(function()
-	local remote = game:GetService("ReplicatedStorage")
-	:WaitForChild("packages")
-	:WaitForChild("Net")
-	:WaitForChild("RE/Plotservice/toggleallow")
-	remote:FireServer()
-	allowed = not allowed
-	upddatestatus()
+    if not remote then
+        status.Text = "Status: NO REMOTE"
+        status.TextColor3 = Color3.fromRGB(255, 80, 80)
+        return
+    end
+
+    -- try firing safely
+    local ok, err = pcall(function()
+        remote:FireServer()
+    end)
+
+    if ok then
+        allowed = not allowed
+        if allowed then
+            status.Text = "Status: ALLOWED (FIRED)"
+            status.TextColor3 = Color3.fromRGB(80, 255, 120)
+            button.BackgroundColor3 = Color3.fromRGB(80, 200, 120)
+        else
+            status.Text = "Status: DISALLOWED (FIRED)"
+            status.TextColor3 = Color3.fromRGB(255, 80, 80)
+            button.BackgroundColor3 = Color3.fromRGB(200, 80, 80)
+        end
+    else
+        status.Text = "Status: FIRE FAILED"
+        status.TextColor3 = Color3.fromRGB(255, 80, 80)
+    end
 end)
 
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
-local drag = false
-local dragstart
-local startpos
+print("===== REMOTE DUMP START =====")
 
-local function updateinput(input)
-	local delta = input.Position - dragstart
-	button.Position = UDim2.new(
-		startpos.X.Scale,
-		startpos.X.Offset + delta.X,
-		startpos.Y.Scale,
-		startpos.Y.Offset + delta.Y
-	)
-	statuslabel.Position = UDim2(
-		startpos.X.Scale,
-		startpos.X.Offset + delta.X - 10,
-		startpos.Y.Scale,
-		startpos.y.offset + delta.Y - 50
-	)
+local count = 0
+
+for _, obj in ipairs(ReplicatedStorage:GetDescendants()) do
+    if obj:IsA("RemoteEvent") or obj:IsA("RemoteFunction") then
+        count += 1
+
+        -- build full path
+        local path = obj:GetFullName()
+        local class = obj.ClassName
+
+        print(string.format("[%d] %s | %s", count, class, path))
+    end
 end
 
+print("===== REMOTE DUMP END =====")
+print("TOTAL REMOTES FOUND:", count)
+
+-- DRAG (MOBILE SAFE)
+local dragging, dragStart, startPos
+
 button.InputBegan:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.Touch 
-	or input.UserInputType == Enum.UserInputType.MouseButton1 then
-	drag = true
-	dragstart = input.Position
-	startpos = button.Position
-	end
+    if input.UserInputType == Enum.UserInputType.Touch
+    or input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = true
+        dragStart = input.Position
+        startPos = button.Position
+    end
 end)
 
 button.InputEnded:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.Touch 
-	or input.UserInputType == Enum.UserInputType.MouseButton1 then
-	drag = false
-	end
+    if input.UserInputType == Enum.UserInputType.Touch
+    or input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = false
+    end
 end)
 
-userinputservice.InputEnded:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
-		drag = false
-	end
+UserInputService.InputChanged:Connect(function(input)
+    if dragging and (
+        input.UserInputType == Enum.UserInputType.Touch
+        or input.UserInputType == Enum.UserInputType.MouseMovement
+    ) then
+        local delta = input.Position - dragStart
+        button.Position = UDim2.new(
+            startPos.X.Scale,
+            startPos.X.Offset + delta.X,
+            startPos.Y.Scale,
+            startPos.Y.Offset + delta.Y
+        )
+        status.Position = UDim2.new(
+            startPos.X.Scale,
+            startPos.X.Offset + delta.X - 40,
+            startPos.Y.Scale,
+            startPos.Y.Offset + delta.Y - 50
+        )
+    end
 end)
-
-userinputservice.InputChanged:Connect(function(input)
-	if drag and (
-		input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseMovement) then
-		update(input)
-	end
-end)
-
-upddatestatus()
